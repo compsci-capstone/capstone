@@ -1,0 +1,14 @@
+name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hashicorp/setup-terraform@v3
+      - name: Pull output from Terraform
+        working-directory: src/terraform
+        run: |
+          echo $BACKEND_TFVARS > backend.tfvars
+          terraform init -backend-config="backend.tfvars"
+          terraform output -json > terraform-output.json
