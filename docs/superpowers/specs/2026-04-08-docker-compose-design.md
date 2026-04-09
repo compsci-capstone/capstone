@@ -193,3 +193,8 @@ For self-hosted production on a VPS:
 3. Run `docker compose up -d`.
 
 The base compose file pulls prebuilt images and runs everything. No build step needed.
+
+## Implementation Notes
+
+- **Env schema validation:** The server uses `@t3-oss/env-nextjs` with Zod in `src/server/src/env.js`. New env vars (`AWS_ENDPOINT_URL`, `BOT_RUNNER`, `BOT_IMAGE_MEET`, `BOT_IMAGE_TEAMS`, `BOT_IMAGE_ZOOM`, `BOT_NETWORK`) must be added to this schema.
+- **MinIO presigned URLs:** The server generates presigned URLs for clients to download recordings. When the S3 endpoint is `http://minio:9000` (Docker-internal), those URLs won't resolve in the user's browser. The presigned URL generation needs a separate "external" MinIO URL (e.g., `http://localhost:9000`) or MinIO must be exposed on a host-accessible address.
