@@ -45,36 +45,23 @@ export const env = createEnv({
         : z.string(),
     AWS_ENDPOINT_URL: z.string().url().optional(),
     AWS_ENDPOINT_URL_PUBLIC: z.string().url().optional(),
-    ECS_TASK_DEFINITION_MEET:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_TASK_DEFINITION_TEAMS:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_TASK_DEFINITION_ZOOM:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_CLUSTER_NAME:
-      process.env.NODE_ENV === "production"
-        ? z.string()
-        : z.string().default(""),
-    ECS_SUBNETS:
-      process.env.NODE_ENV === "production"
-        ? z.preprocess(
-            (val) => (typeof val === "string" ? val.split(",") : []),
-            z.array(z.string()),
-          )
-        : z.array(z.string()).default([]),
-    ECS_SECURITY_GROUPS:
-      process.env.NODE_ENV === "production"
-        ? z.preprocess(
-            (val) => (typeof val === "string" ? val.split(",") : []),
-            z.array(z.string()),
-          )
-        : z.array(z.string()).default([]),
+    BOT_RUNNER: z.enum(["docker", "ecs"]).default("ecs"),
+    BOT_IMAGE_MEET: z.string().optional(),
+    BOT_IMAGE_TEAMS: z.string().optional(),
+    BOT_IMAGE_ZOOM: z.string().optional(),
+    BOT_NETWORK: z.string().optional(),
+    ECS_TASK_DEFINITION_MEET: z.string().default(""),
+    ECS_TASK_DEFINITION_TEAMS: z.string().default(""),
+    ECS_TASK_DEFINITION_ZOOM: z.string().default(""),
+    ECS_CLUSTER_NAME: z.string().default(""),
+    ECS_SUBNETS: z.preprocess(
+      (val) => (typeof val === "string" ? val.split(",") : []),
+      z.array(z.string()),
+    ).default([]),
+    ECS_SECURITY_GROUPS: z.preprocess(
+      (val) => (typeof val === "string" ? val.split(",") : []),
+      z.array(z.string()),
+    ).default([]),
   },
 
   /**
@@ -103,6 +90,11 @@ export const env = createEnv({
     AWS_REGION: process.env.AWS_REGION,
     AWS_ENDPOINT_URL: process.env.AWS_ENDPOINT_URL,
     AWS_ENDPOINT_URL_PUBLIC: process.env.AWS_ENDPOINT_URL_PUBLIC,
+    BOT_RUNNER: process.env.BOT_RUNNER,
+    BOT_IMAGE_MEET: process.env.BOT_IMAGE_MEET,
+    BOT_IMAGE_TEAMS: process.env.BOT_IMAGE_TEAMS,
+    BOT_IMAGE_ZOOM: process.env.BOT_IMAGE_ZOOM,
+    BOT_NETWORK: process.env.BOT_NETWORK,
     ECS_TASK_DEFINITION_MEET: process.env.ECS_TASK_DEFINITION_MEET,
     ECS_TASK_DEFINITION_TEAMS: process.env.ECS_TASK_DEFINITION_TEAMS,
     ECS_TASK_DEFINITION_ZOOM: process.env.ECS_TASK_DEFINITION_ZOOM,

@@ -12,23 +12,31 @@ import {
   type RunTaskRequest,
 } from "@aws-sdk/client-ecs";
 import { env } from "~/env";
+import { deployBotViaDocker } from "./dockerBotRunner";
 
 // Get the directory path using import.meta.url
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const config: ECSClientConfig = {
-  region: env.AWS_REGION,
-};
+let ecsClient: ECSClient | null = null;
 
-if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
-  config.credentials = {
-    accessKeyId: env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-  };
+function getECSClient(): ECSClient {
+  if (!ecsClient) {
+    const config: ECSClientConfig = {
+      region: env.AWS_REGION,
+    };
+
+    if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY) {
+      config.credentials = {
+        accessKeyId: env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+      };
+    }
+
+    ecsClient = new ECSClient(config);
+  }
+  return ecsClient;
 }
-
-const client = new ECSClient(config);
 
 /**
  * Selects the appropriate bot task definition based on meeting information
@@ -96,8 +104,10 @@ export async function deployBot({
       callbackUrl: bot.callbackUrl ?? undefined,
     };
 
-    if (dev) {
-      // Spawn the bot process
+    if (env.BOT_RUNNER === "docker") {
+      await deployBotViaDocker(config);
+    } else if (dev) {
+      // Spawn the bot process locally (legacy dev mode)
       const botProcess = spawn("pnpm", ["start"], {
         cwd: botsDir,
         env: {
@@ -106,7 +116,6 @@ export async function deployBot({
         },
       });
 
-      // Log output for debugging
       botProcess.stdout.on("data", (data) => {
         console.log(`Bot ${botId} stdout: ${data}`);
       });
@@ -117,15 +126,13 @@ export async function deployBot({
         console.error(`Bot ${botId} process error:`, error);
       });
     } else {
-      // todo: i'm not sure if this works as intended
+      // ECS deployment (production AWS)
       const input: RunTaskRequest = {
         cluster: env.ECS_CLUSTER_NAME,
-        // taskDefinition: env.ECS_TASK_DEFINITION_MEET,
         taskDefinition: selectBotTaskDefinition(bot.meetingInfo),
         launchType: "FARGATE",
         networkConfiguration: {
           awsvpcConfiguration: {
-            // Read subnets from environment variables
             subnets: env.ECS_SUBNETS,
             securityGroups: env.ECS_SECURITY_GROUPS,
             assignPublicIp: "ENABLED",
@@ -147,7 +154,7 @@ export async function deployBot({
       };
 
       const command = new RunTaskCommand(input);
-      await client.send(command);
+      await getECSClient().send(command);
     }
 
     // Update status to joining call
