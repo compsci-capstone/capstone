@@ -56,7 +56,7 @@ services:
   server:
     image: ${SERVER_IMAGE:-ghcr.io/meetingbot/server:latest}
     restart: unless-stopped
-    command: ["sh", "-c", "pnpm db:migrate && node server.js"]
+    command: ["sh", "-c", "node migrate.mjs && node server.js"]
     depends_on:
       postgres:
         condition: service_healthy
