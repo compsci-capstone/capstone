@@ -1,0 +1,41 @@
+# Dev overrides — auto-applied by Docker Compose.
+# For production: remove this file or rename it.
+#
+# To change a setting for your local setup, edit your .env file.
+# This file should rarely need manual edits.
+
+services:
+  server:
+    # Build from source instead of pulling a prebuilt image
+    build:
+      context: ./src/server
+    image: meetingbot/server:dev
+    environment:
+      NODE_ENV: development
+      SKIP_ENV_VALIDATION: "true"
+
+  # -------------------------------------------------------
+  # Bot images — built locally, never started as services.
+  # These exist so `docker compose --profile bots build`
+  # produces local images the server can spawn via Docker socket.
+  # -------------------------------------------------------
+  bot-meet:
+    build:
+      context: ./src/bots
+      dockerfile: meet/Dockerfile
+    image: ${BOT_IMAGE_MEET:-meetingbot/bots/meet:dev}
+    profiles: ["bots"]
+
+  bot-teams:
+    build:
+      context: ./src/bots
+      dockerfile: teams/Dockerfile
+    image: ${BOT_IMAGE_TEAMS:-meetingbot/bots/teams:dev}
+    profiles: ["bots"]
+
+  bot-zoom:
+    build:
+      context: ./src/bots
+      dockerfile: zoom/Dockerfile
+    image: ${BOT_IMAGE_ZOOM:-meetingbot/bots/zoom:dev}
+    profiles: ["bots"]

@@ -49,7 +49,8 @@ RUN \
 
 ##### RUNNER
 
-FROM --platform=linux/amd64 gcr.io/distroless/nodejs20-debian12 AS runner
+FROM --platform=linux/amd64 node:20-alpine AS runner
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 ENV NODE_ENV production
@@ -63,7 +64,12 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Include drizzle migrations and migrate script
+COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/migrate.mjs ./migrate.mjs
+COPY --from=builder /app/node_modules ./node_modules
+
 EXPOSE 3000
 ENV PORT 3000
 
-CMD ["server.js"]
+CMD ["node", "server.js"]
