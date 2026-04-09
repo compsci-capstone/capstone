@@ -5,7 +5,7 @@ Replace the AWS/Terraform-only deployment path with a Docker Compose workflow th
 ## Decisions
 
 - **Bot spawning:** Server mounts the Docker socket and uses `dockerode` to spawn ephemeral bot containers on-demand (same lifecycle as current ECS Fargate tasks).
-- **Storage:** MinIO (S3-compatible) runs as a compose service. Existing AWS SDK code works unchanged — only the endpoint URL differs. Users who want real S3 can omit MinIO and point at AWS.
+- **Storage:** MinIO (S3-compatible) runs as a compose service. The S3 clients in both the server and bots need a small change to accept an optional custom endpoint (`AWS_ENDPOINT_URL`). Users who want real S3 can omit MinIO and point at AWS.
 - **Database:** Postgres 17 runs as a compose service with a named volume.
 - **Dev vs prod:** `docker-compose.yml` (base, prod-ready) + `docker-compose.override.yml` (dev overrides, auto-applied). Override file is well-commented so it doubles as documentation.
 - **Bot image builds:** Dev override defines bot services behind a `bots` profile so they build locally but never start as long-running services. A root `Makefile` wraps the two-step workflow into `make dev`.
@@ -77,6 +77,9 @@ AUTH_URL=http://localhost:3000
 AUTH_GITHUB_ID=
 AUTH_GITHUB_SECRET=
 
+# === GitHub ===
+GITHUB_TOKEN=
+
 # === Storage (MinIO) ===
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin
@@ -120,15 +123,19 @@ server:
 
 Migrations run on every startup. If they fail, the server does not start.
 
-## Bot Spawning — Server Code Changes
+## Application Code Changes
 
-This is the only application code change. Everything else is compose config and env vars.
+### S3 Client — Custom Endpoint Support
+
+Both the server (`src/server/src/server/utils/s3.ts`) and bots (`src/bots/src/s3.ts`) S3 clients need to accept an optional `AWS_ENDPOINT_URL` env var and pass it as `endpoint` to the `S3Client` constructor. When set, requests go to MinIO; when absent, they go to real AWS S3. Additionally, MinIO requires `forcePathStyle: true` on the S3 client.
+
+### Bot Spawning — Docker Runner
 
 ### What changes
 
 - Add `dockerode` as a dependency to the server.
-- New `DockerBotRunner` implementation alongside the existing ECS runner.
-- `BOT_RUNNER` env var selects the runner (`docker` or `ecs`).
+- New `DockerBotRunner` implementation alongside the existing ECS runner in `src/server/src/server/api/services/botDeployment.ts`.
+- `BOT_RUNNER` env var selects the runner (`docker` or `ecs`). The existing `dev` code path (child process spawn) is replaced by the Docker runner when `BOT_RUNNER=docker`.
 - The runner interface is the same: "start a bot container with these env vars for this meeting."
 
 ### Docker runner behavior
@@ -145,7 +152,7 @@ const container = await docker.createContainer({
     `AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY}`,
     `AWS_ENDPOINT_URL=${process.env.AWS_ENDPOINT_URL}`,
     'NODE_ENV=production',
-    // plus meeting-specific vars (meeting URL, bot ID, etc.)
+    `BOT_DATA=${JSON.stringify(config)}`,  // meeting-specific config (bot ID, meeting URL, etc.)
   ],
   HostConfig: {
     NetworkMode: process.env.BOT_NETWORK,
@@ -157,7 +164,6 @@ await container.start();
 
 ### What stays the same
 
-- All S3/storage code (MinIO is S3-compatible)
 - All database code (still Postgres, still Drizzle)
 - All auth code
 - All tRPC routes
