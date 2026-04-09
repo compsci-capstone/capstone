@@ -46,6 +46,25 @@ describe('Bot S3 Startup Tests', () => {
         });
     });
 
+    it("create an S3 client with custom endpoint when provided", () => {
+        const mockRegion = "us-east-1";
+        const mockAccessKeyId = "minioadmin";
+        const mockSecretKey = "minioadmin";
+        const mockEndpoint = "http://minio:9000";
+
+        createS3Client(mockRegion, mockAccessKeyId, mockSecretKey, mockEndpoint);
+
+        expect(S3Client).toHaveBeenCalledWith({
+            region: mockRegion,
+            credentials: {
+                accessKeyId: mockAccessKeyId,
+                secretAccessKey: mockSecretKey,
+            },
+            endpoint: mockEndpoint,
+            forcePathStyle: true,
+        });
+    });
+
     it("Bot exits immediately if s3 config passed in is invalid", () => {
         const result = createS3Client(undefined, undefined, undefined);
         expect(result).toBeNull();

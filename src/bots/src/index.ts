@@ -32,7 +32,7 @@ export const main = async () => {
   let key: string = "";
 
   // Initialize S3 client
-  const s3Client = createS3Client(process.env.AWS_REGION!, process.env.AWS_ACCESS_KEY_ID, process.env.AWS_SECRET_ACCESS_KEY);
+  const s3Client = createS3Client(process.env.AWS_REGION!, process.env.AWS_ACCESS_KEY_ID, process.env.AWS_SECRET_ACCESS_KEY, process.env.AWS_ENDPOINT_URL);
   if (!s3Client) {
     throw new Error("Failed to create S3 client");
   }

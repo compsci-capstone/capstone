@@ -8,32 +8,34 @@ import { randomUUID } from "crypto";
  * 
  * @returns S3Client
  */
-export function createS3Client(region: string | undefined, accessKeyId: string | undefined, secretKey: string | undefined): S3Client|null {
-
+export function createS3Client(
+    region: string | undefined,
+    accessKeyId: string | undefined,
+    secretKey: string | undefined,
+    endpoint?: string,
+): S3Client | null {
     try {
+        if (!region) throw new Error("Region is required");
 
-        if (!region)
-            throw new Error("Region is required");
+        const endpointConfig = endpoint
+            ? { endpoint, forcePathStyle: true }
+            : {};
 
-        // Create an S3 client with credentials if they are provided
-        // Local Development requires AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
         if (accessKeyId && secretKey) {
             return new S3Client({
                 region,
                 credentials: {
-                    accessKeyId: accessKeyId,
-                    secretAccessKey: secretKey!,
+                    accessKeyId,
+                    secretAccessKey: secretKey,
                 },
+                ...endpointConfig,
             });
-
-            // Production
-            // Credientials is not required on AWS, so we can use the default constructor.
         } else {
             return new S3Client({
                 region,
+                ...endpointConfig,
             });
         }
-
     } catch (error) {
         return null;
     }
