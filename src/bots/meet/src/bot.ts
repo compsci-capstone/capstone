@@ -460,6 +460,9 @@ export class MeetsBot extends Bot {
       if (!this.startedRecording) {
         console.log('Recording Started.');
         this.startedRecording = true;
+        // Anchor speaker activity timestamps to the moment recording starts,
+        // so they are relative to the recording rather than absolute epoch time.
+        this.recordingStartedAt = Date.now();
       }
     });
 

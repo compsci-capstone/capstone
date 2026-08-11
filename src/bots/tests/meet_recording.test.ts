@@ -95,6 +95,14 @@ describe('Meet Bot Record Tests', () => {
         await bot.startRecording();
         await bot.page.waitForTimeout(20000);
 
+        // Regression check for the recordingStartedAt anchor:
+        // once recording has started, the timestamp used to make speaker
+        // activity relative to the recording must be set to a recent time,
+        // not left at its initial 0 (which would yield absolute epoch offsets).
+        const recordingStartedAt = (bot as any).recordingStartedAt as number;
+        expect(recordingStartedAt).toBeGreaterThan(0);
+        expect(Date.now() - recordingStartedAt).toBeLessThan(60000);
+
         // Stop Recording
         await bot.stopRecording();
         await bot.page.waitForTimeout(1000);
